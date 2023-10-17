@@ -1,0 +1,35 @@
+name: E2E Tests
+on:
+    workflow_dispatch:
+jobs:
+    e2e-tests:
+        strategy:
+            fail-fast: false
+            matrix:
+                wp-docker-image-tag: ['6.2.2-php8.0', '6.4.2-php8.2']
+        runs-on: ubuntu-22.04
+        steps:
+            - uses: actions/checkout@v3
+            - name: Setup test environment
+              run: |
+                  export "WP_DOCKER_IMAGE_TAG=${{ matrix.wp-docker-image-tag }}"
+                  docker compose up -d wordpress
+                  docker compose run --rm -u 33 wpcli wp core install \
+                      --url=localhost:9992 \
+                      --title="Test Site" \
+                      --admin_user=e2e \
+                      --admin_password=e2e \
+                      --admin_email=e2e@test-site.localhost
+                  docker compose run --rm -u 33 wpcli wp plugin install wp-guest-bar
+                  docker compose run --rm e2e npm install
+            - name: Run the tests
+              run: docker compose run --rm e2e npm run test
+            - name: Retain failed test results
+              uses: actions/upload-artifact@v3
+              if: failure()
+              with:
+                  name: test-results-${{ matrix.wp-docker-image-tag }}
+                  path: test-results/
+            - name: Cleanup test environment
+              if: always()
+              run: docker compose down -v --remove-orphans

@@ -1,0 +1,56 @@
+services:
+    wordpress:
+        image: 'wordpress:${WP_DOCKER_IMAGE_TAG:-6.4.2-php8.2}'
+        hostname: wordpress
+        ports:
+            - 9992:80
+        environment:
+            WORDPRESS_DB_HOST: db
+            WORDPRESS_DB_USER: e2e
+            WORDPRESS_DB_PASSWORD: e2e
+            WORDPRESS_DB_NAME: wordpress
+            WORDPRESS_CONFIG_EXTRA: |
+                define('WP_HOME', 'http://' . $$_SERVER['HTTP_HOST']);
+                define('WP_SITEURL', 'http://' . $$_SERVER['HTTP_HOST']);
+        volumes:
+            - wordpress:/var/www/html
+            - ./mu-plugins:/var/www/html/wp-content/mu-plugins
+        depends_on:
+            db:
+                condition: service_healthy
+    db:
+        image: mysql:8.1
+        environment:
+            MYSQL_DATABASE: wordpress
+            MYSQL_USER: e2e
+            MYSQL_PASSWORD: e2e
+            MYSQL_RANDOM_ROOT_PASSWORD: 1
+        volumes:
+            - db:/var/lib/mysql
+        healthcheck:
+            test: mysql wordpress --user=e2e --password=e2e --silent --execute "SELECT 1;"
+            interval: 30s
+            timeout: 10s
+            retries: 5
+    e2e:
+        image: mcr.microsoft.com/playwright:v1.40.1-jammy
+        environment:
+            WP_AUTH_STORAGE: .auth/wordpress.json
+            WP_BASE_URL: http://wordpress
+            WP_USERNAME: e2e
+            WP_PASSWORD: e2e
+        volumes:
+            - .:/app
+        working_dir: /app
+    wpcli:
+        image: wordpress:cli-2.9-php8.2
+        environment:
+            WORDPRESS_DB_HOST: db
+            WORDPRESS_DB_USER: e2e
+            WORDPRESS_DB_PASSWORD: e2e
+            WORDPRESS_DB_NAME: wordpress
+        volumes:
+            - wordpress:/var/www/html
+volumes:
+    wordpress:
+    db:
