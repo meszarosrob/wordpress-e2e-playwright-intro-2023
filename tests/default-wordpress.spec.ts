@@ -7,7 +7,7 @@ test('No admin bar appears on the front end when the plugin is inactive', async 
 }) => {
     // We always start by setting the application in the desired state.
     // Here, the only requirement is to have the plugin deactivated.
-    await requestUtils.deactivatePlugin('wp-guest-bar');
+    await requestUtils.activatePlugin('wp-guest-bar');
 
     await page.goto('/');
 

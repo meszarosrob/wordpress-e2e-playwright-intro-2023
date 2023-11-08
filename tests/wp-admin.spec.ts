@@ -42,13 +42,15 @@ test.describe(() => {
         const customMessageField = page.getByLabel('Top Bar Message');
         const saveButton = page.getByRole('button', { name: 'Save Changes' });
 
-        await customMessageField.fill('Sic vita est!');
+        await customMessageField.pressSequentially('Sic vita est!', {
+            delay: 100,
+        });
         await saveButton.click();
 
         // At this point, after the form submission, we are on a new page.
         const successMessage = page.getByText('Settings saved');
 
         await expect(successMessage).toBeVisible();
-        await expect(customMessageField).toHaveValue('Sic vita est!');
+        await expect(customMessageField).toHaveValue('Contra spem spero!');
     });
 });
